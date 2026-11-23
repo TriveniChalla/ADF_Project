@@ -1,0 +1,17 @@
+{
+	"name": "ls_onprem_file",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "FileServer",
+		"typeProperties": {
+			"host": "C:\\TriveniChalla",
+			"userId": "laptop-d9mbl6p6\\thriveni challa",
+			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiJkNDljNWY1OS1mOGU2LTQ2ZjgtYTE4OS1lMWQ3MTYzYTZhOTgiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
+		},
+		"connectVia": {
+			"referenceName": "TriveniintegrationRuntime",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

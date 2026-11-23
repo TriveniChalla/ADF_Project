@@ -1,0 +1,320 @@
+{
+	"name": "Parent pipeline",
+	"properties": {
+		"activities": [
+			{
+				"name": "ExecuteOnprem",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Onprem_pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"files": {
+							"value": "@pipeline().parameters.files",
+							"type": "Expression"
+						},
+						"p_mapping_Passenger": {
+							"value": "@pipeline().parameters.p_mapping_Passenger",
+							"type": "Expression"
+						},
+						"p_mapping_Airline": {
+							"value": "@pipeline().parameters.p_mapping_Airline",
+							"type": "Expression"
+						},
+						"p_mapping_Flight": {
+							"value": "@pipeline().parameters.p_mapping_Flight",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "ExecuteAPI",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "ExecuteOnprem",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "API_Ingestion",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Execute SQLto DatLake",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "ExecuteAPI",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "SQLtoDatlake",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "FailuereAlerts",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Execute SQLto DatLake",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"url": {
+						"value": "https://prod-21.canadacentral.logic.azure.com:443/workflows/12db04123c904d76b834bc3df35a7320/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=nogE7FlojHyzIO7Hpb5a7jv7lu_MkbH4-Xlky8iWWqE",
+						"type": "Expression"
+					},
+					"body": {
+						"value": "{\n    \"pipeline_name\":\"@{pipeline().Pipeline}\",\n    \"run_id\": \"@{pipeline().RunId}\",\n    \"status\": \"@{activity('Execute SQLto DatLake').status}\",\n    \"error\": \"@{if(equals(activity('Execute SQLto DatLake').Status,'Failed'), string(activity('Execute SQLto DatLake').error),'No error')}\"\n}",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"files": {
+				"type": "array",
+				"defaultValue": [
+					{
+						"filename": "DimAirline.csv"
+					},
+					{
+						"filename": "DimFlight.csv"
+					},
+					{
+						"filename": "DimPassenger.csv"
+					}
+				]
+			},
+			"p_mapping_Passenger": {
+				"type": "object",
+				"defaultValue": {
+					"type": "TabularTranslator",
+					"mappings": [
+						{
+							"source": {
+								"name": "passenger_id",
+								"type": "String",
+								"physicalType": "String"
+							},
+							"sink": {
+								"name": "passenger_id",
+								"type": "String",
+								"physicalType": "String"
+							}
+						},
+						{
+							"source": {
+								"name": "full_name",
+								"type": "String",
+								"physicalType": "String"
+							},
+							"sink": {
+								"name": "full_name",
+								"type": "String",
+								"physicalType": "String"
+							}
+						},
+						{
+							"source": {
+								"name": "gender",
+								"type": "String",
+								"physicalType": "String"
+							},
+							"sink": {
+								"name": "gender",
+								"type": "String",
+								"physicalType": "String"
+							}
+						},
+						{
+							"source": {
+								"name": "age",
+								"type": "String",
+								"physicalType": "String"
+							},
+							"sink": {
+								"name": "age",
+								"type": "String",
+								"physicalType": "String"
+							}
+						},
+						{
+							"source": {
+								"name": "country",
+								"type": "String",
+								"physicalType": "String"
+							},
+							"sink": {
+								"name": "country",
+								"type": "String",
+								"physicalType": "String"
+							}
+						}
+					],
+					"typeConversion": true,
+					"typeConversionSettings": {
+						"allowDataTruncation": true,
+						"treatBooleanAsNumber": false
+					}
+				}
+			},
+			"p_mapping_Airline": {
+				"type": "object",
+				"defaultValue": {
+					"type": "TabularTranslator",
+					"mappings": [
+						{
+							"source": {
+								"name": "airline_id",
+								"type": "String",
+								"physicalType": "String"
+							},
+							"sink": {
+								"name": "airline_id",
+								"type": "String",
+								"physicalType": "String"
+							}
+						},
+						{
+							"source": {
+								"name": "airline_name",
+								"type": "String",
+								"physicalType": "String"
+							},
+							"sink": {
+								"name": "airline_name",
+								"type": "String",
+								"physicalType": "String"
+							}
+						},
+						{
+							"source": {
+								"name": "country",
+								"type": "String",
+								"physicalType": "String"
+							},
+							"sink": {
+								"name": "country",
+								"type": "String",
+								"physicalType": "String"
+							}
+						}
+					],
+					"typeConversion": true,
+					"typeConversionSettings": {
+						"allowDataTruncation": true,
+						"treatBooleanAsNumber": false
+					}
+				}
+			},
+			"p_mapping_Flight": {
+				"type": "object",
+				"defaultValue": {
+					"type": "TabularTranslator",
+					"mappings": [
+						{
+							"source": {
+								"name": "flight_id",
+								"type": "String",
+								"physicalType": "String"
+							},
+							"sink": {
+								"name": "flight_id",
+								"type": "String",
+								"physicalType": "String"
+							}
+						},
+						{
+							"source": {
+								"name": "flight_number",
+								"type": "String",
+								"physicalType": "String"
+							},
+							"sink": {
+								"name": "flight_number",
+								"type": "String",
+								"physicalType": "String"
+							}
+						},
+						{
+							"source": {
+								"name": "departure_time",
+								"type": "String",
+								"physicalType": "String"
+							},
+							"sink": {
+								"name": "departure_time",
+								"type": "String",
+								"physicalType": "String"
+							}
+						},
+						{
+							"source": {
+								"name": "arrival_time",
+								"type": "String",
+								"physicalType": "String"
+							},
+							"sink": {
+								"name": "arrival_time",
+								"type": "String",
+								"physicalType": "String"
+							}
+						}
+					],
+					"typeConversion": true,
+					"typeConversionSettings": {
+						"allowDataTruncation": true,
+						"treatBooleanAsNumber": false
+					}
+				}
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-11-15T09:51:50Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

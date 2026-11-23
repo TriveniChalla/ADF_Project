@@ -1,0 +1,16 @@
+{
+	"name": "course-adf-triveni",
+	"properties": {
+		"trustModeClaimForMi": {
+			"value": "Disabled",
+			"editable": true,
+			"isExplicitlySet": false
+		}
+	},
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "4b9e1b85-9ceb-4705-ad3c-477adaff19fd",
+		"tenantId": "bd412dfc-efbc-46ac-8477-0e48c2204a3d"
+	}
+}

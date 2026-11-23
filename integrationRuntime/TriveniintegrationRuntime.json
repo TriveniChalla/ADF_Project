@@ -1,0 +1,6 @@
+{
+	"name": "TriveniintegrationRuntime",
+	"properties": {
+		"type": "SelfHosted"
+	}
+}

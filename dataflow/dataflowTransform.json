@@ -1,0 +1,308 @@
+{
+	"name": "dataflowTransform",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "dim_Airline",
+						"type": "DatasetReference"
+					},
+					"name": "Airline"
+				},
+				{
+					"dataset": {
+						"referenceName": "dim_passenger",
+						"type": "DatasetReference"
+					},
+					"name": "Passenger"
+				},
+				{
+					"dataset": {
+						"referenceName": "dim_flight",
+						"type": "DatasetReference"
+					},
+					"name": "Flight"
+				},
+				{
+					"dataset": {
+						"referenceName": "Json_Airport",
+						"type": "DatasetReference"
+					},
+					"name": "Airport"
+				},
+				{
+					"dataset": {
+						"referenceName": "Parquet_Factbookings",
+						"type": "DatasetReference"
+					},
+					"name": "Factbookings"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "Lsdatalake",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				},
+				{
+					"linkedService": {
+						"referenceName": "Lsdatalake",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink3"
+				},
+				{
+					"linkedService": {
+						"referenceName": "Lsdatalake",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink4"
+				},
+				{
+					"linkedService": {
+						"referenceName": "Lsdatalake",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink5"
+				},
+				{
+					"linkedService": {
+						"referenceName": "Lsdatalake",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink2"
+				}
+			],
+			"transformations": [
+				{
+					"name": "derivedcolCountry"
+				},
+				{
+					"name": "selectcolnsRename"
+				},
+				{
+					"name": "selectGender"
+				},
+				{
+					"name": "derivedColumngender"
+				},
+				{
+					"name": "derivedGender"
+				},
+				{
+					"name": "filterage"
+				},
+				{
+					"name": "derivedName"
+				},
+				{
+					"name": "castticketcost"
+				},
+				{
+					"name": "derivedColnAirportName"
+				},
+				{
+					"name": "alterRow1"
+				},
+				{
+					"name": "alterRow3"
+				},
+				{
+					"name": "alterRowairport"
+				},
+				{
+					"name": "alterRow5"
+				},
+				{
+					"name": "alterRow2"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          airline_id as short,",
+				"          airline_name as string,",
+				"          country as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> Airline",
+				"source(output(",
+				"          passenger_id as short,",
+				"          full_name as string,",
+				"          gender as string,",
+				"          age as short,",
+				"          country as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> Passenger",
+				"source(output(",
+				"          flight_id as short,",
+				"          flight_number as string,",
+				"          departure_time as string,",
+				"          arrival_time as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> Flight",
+				"source(output(",
+				"          airport_id as short,",
+				"          airport_name as string,",
+				"          city as string,",
+				"          country as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     documentForm: 'documentPerLine') ~> Airport",
+				"source(output(",
+				"          booking_id as integer,",
+				"          passenger_id as integer,",
+				"          flight_id as integer,",
+				"          airline_id as integer,",
+				"          origin_airport_id as integer,",
+				"          destination_airport_id as integer,",
+				"          booking_date as date,",
+				"          ticket_cost as decimal(10,2),",
+				"          flight_duration_mins as integer,",
+				"          checkin_status as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'parquet') ~> Factbookings",
+				"Airline derive(country = upper(country)) ~> derivedcolCountry",
+				"Flight select(mapColumn(",
+				"          flight_id,",
+				"          flight_number,",
+				"          departure_timestamp = departure_time,",
+				"          arrival_timestamp = arrival_time",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectcolnsRename",
+				"Passenger select(mapColumn(",
+				"          passenger_id,",
+				"          full_name,",
+				"          gender_flag = gender,",
+				"          age,",
+				"          country",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectGender",
+				"selectGender derive(gender_flag = regexReplace(gender_flag, \"M\", \"Male\")) ~> derivedColumngender",
+				"derivedColumngender derive(gender_flag = regexReplace(gender_flag, \"F\", \"Female\")) ~> derivedGender",
+				"derivedGender filter(age > 25) ~> filterage",
+				"filterage derive(First_name = split(full_name, \" \")[1]) ~> derivedName",
+				"Factbookings cast(output(",
+				"          ticket_cost as integer",
+				"     ),",
+				"     errors: true) ~> castticketcost",
+				"Airport derive(airport_name = upper(airport_name)) ~> derivedColnAirportName",
+				"derivedcolCountry alterRow(upsertIf(1>0)) ~> alterRow1",
+				"selectcolnsRename alterRow(upsertIf(1==1)) ~> alterRow3",
+				"derivedColnAirportName alterRow(upsertIf(1<2)) ~> alterRowairport",
+				"castticketcost alterRow(upsertIf(1==1)) ~> alterRow5",
+				"derivedName alterRow(upsertIf(2==2)) ~> alterRow2",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delta',",
+				"     fileSystem: 'silver',",
+				"     folderPath: 'DimAirline',",
+				"     mergeSchema: false,",
+				"     autoCompact: false,",
+				"     optimizedWrite: false,",
+				"     vacuum: 0,",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:['airline_id'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sink1",
+				"alterRow3 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delta',",
+				"     fileSystem: 'silver',",
+				"     folderPath: 'Flight',",
+				"     mergeSchema: false,",
+				"     autoCompact: false,",
+				"     optimizedWrite: false,",
+				"     vacuum: 0,",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:['flight_id'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sink3",
+				"alterRowairport sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delta',",
+				"     fileSystem: 'silver',",
+				"     folderPath: 'airport',",
+				"     mergeSchema: false,",
+				"     autoCompact: false,",
+				"     optimizedWrite: false,",
+				"     vacuum: 0,",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:['airport_id'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sink4",
+				"alterRow5 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delta',",
+				"     fileSystem: 'silver',",
+				"     folderPath: 'FactBookings',",
+				"     mergeSchema: false,",
+				"     autoCompact: false,",
+				"     optimizedWrite: false,",
+				"     vacuum: 0,",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:['booking_id'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sink5",
+				"alterRow2 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delta',",
+				"     fileSystem: 'silver',",
+				"     folderPath: 'Passenger',",
+				"     mergeSchema: false,",
+				"     autoCompact: false,",
+				"     optimizedWrite: false,",
+				"     vacuum: 0,",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:['passenger_id'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sink2"
+			]
+		}
+	}
+}
